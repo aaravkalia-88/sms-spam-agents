@@ -1,0 +1,87 @@
+{
+  "dataset": {
+    "raw": 5572,
+    "discards": 475,
+    "conflicting_groups": 0,
+    "csv_sha256": "440e6ea9fa825578abfdd7b7932ef8393d72ef86c0c33f64676705ce40b1dfc2"
+  },
+  "environment": {
+    "python": "3.14.0",
+    "torch": "2.15.0",
+    "os": "Darwin",
+    "architecture": "arm64",
+    "device": "cpu"
+  },
+  "seed": 17,
+  "features_per_agent": 4096,
+  "training_steps": 45,
+  "splits": {
+    "train": {
+      "total": 3571,
+      "spam": 421
+    },
+    "validation": {
+      "total": 763,
+      "spam": 89
+    },
+    "test": {
+      "total": 763,
+      "spam": 89
+    }
+  },
+  "models": {
+    "majority": {
+      "tp": 0,
+      "fp": 0,
+      "tn": 674,
+      "fn": 89,
+      "accuracy": 0.8833551769331586,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "word": {
+      "threshold": 0.3,
+      "tp": 79,
+      "fp": 11,
+      "tn": 663,
+      "fn": 10,
+      "accuracy": 0.9724770642201835,
+      "precision": 0.8777777777777778,
+      "recall": 0.8876404494382022,
+      "f1": 0.88268156424581
+    },
+    "character": {
+      "threshold": 0.5,
+      "tp": 77,
+      "fp": 7,
+      "tn": 667,
+      "fn": 12,
+      "accuracy": 0.9750982961992136,
+      "precision": 0.9166666666666666,
+      "recall": 0.8651685393258427,
+      "f1": 0.8901734104046243
+    },
+    "coordinator": {
+      "threshold": 0.45,
+      "tp": 79,
+      "fp": 6,
+      "tn": 668,
+      "fn": 10,
+      "accuracy": 0.9790301441677588,
+      "precision": 0.9294117647058824,
+      "recall": 0.8876404494382022,
+      "f1": 0.9080459770114943
+    }
+  },
+  "failure": {
+    "data_row": 4930,
+    "expected": "spam",
+    "prediction": "ham",
+    "scores": {
+      "word": 0.26809969544410706,
+      "character": 0.46340426802635193,
+      "coordinator": 0.3657519817352295
+    }
+  }
+}
