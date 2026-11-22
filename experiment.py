@@ -14,6 +14,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -21,6 +22,7 @@ AGENTS = ("word", "character")
 WIDTH = 4096
 STEPS = 45
 MAX_MESSAGE_LENGTH = 4096
+BOOTSTRAP_SAMPLES = 10_000
 LABELS = {"ham": 0, "spam": 1}
 CONTACT = re.compile(r"https?://\S+|www\.\S+|[\w.+-]+@[\w.-]+\.\w+")
 WORD = re.compile(r"\w+")
@@ -144,6 +146,44 @@ def select_threshold(scores, labels):
     return best / 100
 
 
+def paired_bootstrap(labels, baseline, coordinator_predictions, *, seed):
+    """Estimate the coordinator's F1 difference on paired held-out predictions."""
+    pair_codes = 2 * baseline + coordinator_predictions
+    counts = np.stack(
+        [
+            np.bincount(pair_codes[~labels], minlength=4),
+            np.bincount(pair_codes[labels], minlength=4),
+        ]
+    )
+
+    def spam_f1(ham, spam, positive_cells):
+        true_positives = spam[..., positive_cells].sum(axis=-1)
+        false_positives = ham[..., positive_cells].sum(axis=-1)
+        return 2 * true_positives / (spam.sum(axis=-1) + true_positives + false_positives)
+
+    # Resample paired outcomes within each actual label to keep class counts fixed.
+    rng = np.random.default_rng(seed % (2**64))
+    ham_samples, spam_samples = [
+        rng.multinomial(int(row.sum()), row / row.sum(), size=BOOTSTRAP_SAMPLES) for row in counts
+    ]
+    ham, spam = counts
+    delta = spam_f1(ham, spam, [1, 3]) - spam_f1(ham, spam, [2, 3])
+    sampled_deltas = spam_f1(ham_samples, spam_samples, [1, 3]) - spam_f1(
+        ham_samples, spam_samples, [2, 3]
+    )
+    buckets = ("both_ham", "coordinator_only_spam", "baseline_only_spam", "both_spam")
+    return {
+        "delta_f1": float(delta),
+        "ci95": np.quantile(sampled_deltas, [0.025, 0.975]).tolist(),
+        "resamples": BOOTSTRAP_SAMPLES,
+        "seed": seed,
+        "pairs": {
+            label: dict(zip(buckets, row.tolist(), strict=True))
+            for label, row in zip(LABELS, counts, strict=True)
+        },
+    }
+
+
 def train(args):
     torch.set_num_threads(2)
     torch.manual_seed(args.seed)
@@ -177,6 +217,9 @@ def train(args):
             **evaluate(scores, labels["test"], thresholds[name]),
         }
 
+    predicted = {name: (scores >= thresholds[name]).numpy() for name, scores in test_scores.items()}
+    actual = labels["test"].bool().numpy()
+
     missed = [
         i
         for i, m in enumerate(test)
@@ -200,6 +243,7 @@ def train(args):
         "environment": {
             "python": platform.python_version(),
             "torch": str(torch.__version__),
+            "numpy": np.__version__,
             "os": platform.system(),
             "architecture": platform.machine(),
             "device": "cpu",
@@ -212,6 +256,12 @@ def train(args):
             for name, part in splits.items()
         },
         "models": metrics,
+        "paired_f1": {
+            agent: paired_bootstrap(
+                actual, predicted[agent], predicted["coordinator"], seed=args.seed
+            )
+            for agent in AGENTS
+        },
         "failure": failure,
     }
     torch.save({"states": states, "threshold": thresholds["coordinator"]}, args.model)

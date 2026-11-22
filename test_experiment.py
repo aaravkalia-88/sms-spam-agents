@@ -4,6 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
 
@@ -12,6 +13,7 @@ from experiment import (
     coordinator,
     encode,
     evaluate,
+    paired_bootstrap,
     read_dataset,
     select_threshold,
     split_dataset,
@@ -86,6 +88,32 @@ def test_coordinator_metrics_and_validation_threshold():
     )
 
 
+@pytest.mark.parametrize("seed", [42, -1])
+def test_paired_bootstrap_agreement_has_zero_width_interval(seed):
+    labels = np.array([False, False, True, True])
+    predicted = np.array([False, True, True, False])
+    result = paired_bootstrap(labels, predicted, predicted, seed=seed)
+    assert result["delta_f1"] == 0
+    assert result["ci95"] == [0, 0]
+
+
+def test_paired_bootstrap_counts_each_kind_of_disagreement():
+    labels = np.array([False] * 4 + [True] * 4)
+    baseline = np.array([False, False, True, False, False, True, True, True])
+    candidate = np.array([False, True, False, False, True, True, True, True])
+    result = paired_bootstrap(labels, baseline, candidate, seed=42)
+    assert result == paired_bootstrap(labels, baseline, candidate, seed=42)
+    assert result["delta_f1"] == pytest.approx(8 / 9 - 6 / 8)
+    assert result["pairs"]["ham"] == {
+        "both_ham": 2,
+        "coordinator_only_spam": 1,
+        "baseline_only_spam": 1,
+        "both_spam": 0,
+    }
+    assert result["pairs"]["spam"]["coordinator_only_spam"] == 1
+    assert result["ci95"][0] < result["delta_f1"] < result["ci95"][1]
+
+
 def test_train_and_predict_entry_points(tmp_path):
     path = tmp_path / "spam.csv"
     write_csv(
@@ -119,6 +147,9 @@ def test_train_and_predict_entry_points(tmp_path):
     assert results["splits"]["test"]["total"] == 6
     assert set(results["models"]) == {"majority", "word", "character", "coordinator"}
     assert results["models"]["coordinator"]["f1"] == 1
+    assert set(results["paired_f1"]) == {"word", "character"}
+    assert results["paired_f1"]["word"]["resamples"] == 10_000
+    assert sum(results["paired_f1"]["word"]["pairs"]["spam"].values()) == 3
     assert "Claim cash" not in report.read_text()
 
     prediction = subprocess.run(

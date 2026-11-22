@@ -8,6 +8,7 @@
   "environment": {
     "python": "3.14.0",
     "torch": "2.15.0",
+    "numpy": "2.5.5",
     "os": "Darwin",
     "architecture": "arm64",
     "device": "cpu"
@@ -72,6 +73,54 @@
       "precision": 0.9090909090909091,
       "recall": 0.898876404494382,
       "f1": 0.903954802259887
+    }
+  },
+  "paired_f1": {
+    "word": {
+      "delta_f1": -0.008325899494498912,
+      "ci95": [
+        -0.03910203575509341,
+        0.0226229001645895
+      ],
+      "resamples": 10000,
+      "seed": 42,
+      "pairs": {
+        "ham": {
+          "both_ham": 665,
+          "coordinator_only_spam": 5,
+          "baseline_only_spam": 1,
+          "both_spam": 3
+        },
+        "spam": {
+          "both_ham": 9,
+          "coordinator_only_spam": 2,
+          "baseline_only_spam": 0,
+          "both_spam": 78
+        }
+      }
+    },
+    "character": {
+      "delta_f1": 0.024833923139007896,
+      "ci95": [
+        -0.007682216169565095,
+        0.05905847486959251
+      ],
+      "resamples": 10000,
+      "seed": 42,
+      "pairs": {
+        "ham": {
+          "both_ham": 659,
+          "coordinator_only_spam": 2,
+          "baseline_only_spam": 7,
+          "both_spam": 6
+        },
+        "spam": {
+          "both_ham": 8,
+          "coordinator_only_spam": 1,
+          "baseline_only_spam": 1,
+          "both_spam": 79
+        }
+      }
     }
   },
   "failure": {
