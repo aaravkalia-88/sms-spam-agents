@@ -93,7 +93,7 @@ The demo returns JSON with the final label (`spam` for this example), each agent
 
 ## Software tests
 
-**10 tests passed with 97.65% combined statement and branch coverage** for `experiment.py` in the local run. GitHub Actions uses the same suite with an 80% minimum and verifies that both figures render. Unit and integration fixtures are synthetic.
+**10 tests passed with 97.65% combined statement and branch coverage** for `experiment.py` in the local run. GitHub Actions uses the same suite with an 80% minimum and verifies that both figures render. Unit and integration fixtures are synthetic. [Passing GitHub Actions run](https://github.com/aaravkalia-88/sms-spam-agents/actions/runs/45012190447)
 
 | Check | What it verifies |
 | --- | --- |
